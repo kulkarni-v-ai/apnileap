@@ -1020,17 +1020,10 @@ function App() {
 
   const handleQuickConnect = async (email) => {
     setLoginEmail(email);
-    let password = "moderator123";
-    if (email === "pm@apnileap.com") password = "pm123";
-    else if (email.startsWith("mentor@")) password = "mentor123";
-    else if (email.startsWith("student@")) password = "student123";
-    else if (email === "executive@apnileap.com") password = "executive123";
-    else if (email === "sponsor@company1.com" || email === "project_mentor@company1.com") password = "company1_123";
-    else if (email === "coordinator@kle.edu") password = "kle123";
-    else if (email === "coordinator@coep.edu") password = "coep123";
-    else if (email === "coordinator@mmcoep.edu") password = "mmcoep123";
-    else if (email === "coordinator@rit.edu") password = "rit123";
-    else if (email === "volunteer@apnileap.com") password = "password";
+    let password = "Password123!";
+    if (email === "admin@apnileap.com") {
+      password = "Admin@12345";
+    }
 
     setLoginPassword(password);
     setLoginError("");

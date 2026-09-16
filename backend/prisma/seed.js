@@ -31,60 +31,27 @@ async function main() {
   const adminPassword = await bcrypt.hash('Admin@12345', 10);
 
   const users = [
-    {
-      email: 'admin@apnileap.com',
-      password: adminPassword,
-      displayName: 'Central Admin',
-      role: 'ADMIN',
-      persona: 'moderator',
-      status: 'APPROVED',
-      campusId: '101'
-    },
-    {
-      email: 'moderator@apnileap.com',
-      password: defaultPassword,
-      displayName: 'State FIP Moderator',
-      role: 'MODERATOR',
-      persona: 'moderator',
-      status: 'APPROVED',
-      campusId: '101'
-    },
-    {
-      email: 'student@rit.edu',
-      password: defaultPassword,
-      displayName: 'Rahul Sharma',
-      role: 'STUDENT',
-      persona: 'student',
-      status: 'APPROVED',
-      campusId: '3'
-    },
-    {
-      email: 'faculty@rit.edu',
-      password: defaultPassword,
-      displayName: 'Dr. Suresh Patil',
-      role: 'FACULTY_MENTOR',
-      persona: 'faculty',
-      status: 'APPROVED',
-      campusId: '3'
-    },
-    {
-      email: 'mentor@bosch.com',
-      password: defaultPassword,
-      displayName: 'Aniket Verma',
-      role: 'PROJECT_MENTOR',
-      persona: 'mentor',
-      status: 'APPROVED',
-      campusId: '101'
-    },
-    {
-      email: 'exec@nvidia.com',
-      password: defaultPassword,
-      displayName: 'Priya Nair',
-      role: 'EXECUTIVE',
-      persona: 'executive',
-      status: 'APPROVED',
-      campusId: '101'
-    }
+    { email: 'admin@apnileap.com', password: adminPassword, displayName: 'Executive Admin', role: 'ADMIN', persona: 'moderator', status: 'APPROVED', campusId: '101' },
+    { email: 'moderator@apnileap.com', password: defaultPassword, displayName: 'Central Moderator', role: 'MODERATOR', persona: 'moderator', status: 'APPROVED', campusId: '101' },
+    { email: 'pm@apnileap.com', password: defaultPassword, displayName: 'Project Manager', role: 'PROJECT_MANAGER', persona: 'moderator', status: 'APPROVED', campusId: '101' },
+    
+    { email: 'student@rit.edu', password: defaultPassword, displayName: 'Rahul Sharma', role: 'STUDENT', persona: 'student', status: 'APPROVED', campusId: '3' },
+    { email: 'student@kle.edu', password: defaultPassword, displayName: 'Ananya Deshmukh', role: 'STUDENT', persona: 'student', status: 'APPROVED', campusId: '3' },
+    { email: 'student@coep.edu', password: defaultPassword, displayName: 'Sneha Joshi', role: 'STUDENT', persona: 'student', status: 'APPROVED', campusId: '103' },
+    
+    { email: 'faculty@rit.edu', password: defaultPassword, displayName: 'Dr. Suresh Patil', role: 'FACULTY_MENTOR', persona: 'faculty', status: 'APPROVED', campusId: '3' },
+    { email: 'mentor@kle.edu', password: defaultPassword, displayName: 'Prof. Ramesh Kulkarni', role: 'FACULTY_MENTOR', persona: 'faculty', status: 'APPROVED', campusId: '3' },
+    { email: 'mentor@bosch.com', password: defaultPassword, displayName: 'Aniket Verma (Bosch)', role: 'PROJECT_MENTOR', persona: 'mentor', status: 'APPROVED', campusId: '101' },
+    { email: 'project_mentor@company1.com', password: defaultPassword, displayName: 'Vikram Mehta (Company 1)', role: 'PROJECT_MENTOR', persona: 'mentor', status: 'APPROVED', campusId: '101' },
+    
+    { email: 'exec@nvidia.com', password: defaultPassword, displayName: 'Priya Nair (NVIDIA)', role: 'EXECUTIVE', persona: 'executive', status: 'APPROVED', campusId: '101' },
+    { email: 'sponsor@company1.com', password: defaultPassword, displayName: 'Corporate Sponsor (Company 1)', role: 'CORPORATE_SPONSOR', persona: 'executive', status: 'APPROVED', campusId: '101' },
+    
+    { email: 'coordinator@kle.edu', password: defaultPassword, displayName: 'KLE Campus Coordinator', role: 'COORDINATOR', persona: 'faculty', status: 'APPROVED', campusId: '3' },
+    { email: 'coordinator@coep.edu', password: defaultPassword, displayName: 'COEP Campus Coordinator', role: 'COORDINATOR', persona: 'faculty', status: 'APPROVED', campusId: '103' },
+    { email: 'coordinator@mmcoep.edu', password: defaultPassword, displayName: 'MMCOEP Campus Coordinator', role: 'COORDINATOR', persona: 'faculty', status: 'APPROVED', campusId: '102' },
+    { email: 'coordinator@rit.edu', password: defaultPassword, displayName: 'RIT Campus Coordinator', role: 'COORDINATOR', persona: 'faculty', status: 'APPROVED', campusId: '3' },
+    { email: 'volunteer@apnileap.com', password: defaultPassword, displayName: 'FIP Volunteer', role: 'VOLUNTEER', persona: 'student', status: 'APPROVED', campusId: '101' }
   ];
 
   for (const u of users) {
