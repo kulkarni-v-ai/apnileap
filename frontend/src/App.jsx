@@ -7267,7 +7267,7 @@ function App() {
                           gap: "8px"
                         }}
                       >
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><FaUsers /></span> My Team &amp; Teammates
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><FaUsers /></span> My Team Details
                       </button>
                     </div>
 
@@ -7806,7 +7806,7 @@ function App() {
                       </div>
                     )}
 
-                    {/* TAB 3: 👥 MY TEAM & TEAMMATES */}
+                    {/* TAB 3: 👥 MY TEAM DETAILS */}
                     {activeCoordinatorTab === "my-team" && (
                       <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                         {(() => {
