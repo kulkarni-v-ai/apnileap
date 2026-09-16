@@ -1,4 +1,5 @@
-const mongoose = require('mongoose');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 class MeetingSchedulingSkill {
   async execute(prompt, context) {
@@ -29,18 +30,18 @@ class MeetingSchedulingSkill {
     const date = atSplit[0].trim();
     const time = atSplit[1] ? atSplit[1].trim() : "10:00";
     
-    const Meeting = mongoose.model("Meeting");
-    const newMeeting = new Meeting({
-      id: `meet-${Date.now()}`,
-      title,
-      campusId: targetCampusId,
-      date,
-      time,
-      link: `https://meet.jit.si/Rovo-Sync-${Date.now().toString().slice(-5)}`,
-      agenda: "Automated Rovo Sync.",
-      cadenceType: "General Sync"
+    const newMeeting = await prisma.meeting.create({
+      data: {
+        id: `meet-${Date.now()}`,
+        title,
+        campusId: targetCampusId,
+        date,
+        time,
+        meetingLink: `https://meet.jit.si/Rovo-Sync-${Date.now().toString().slice(-5)}`,
+        agenda: "Automated Rovo Sync.",
+        cadenceType: "General Sync"
+      }
     });
-    await newMeeting.save();
     
     return { success: true, response: `✨ **Meeting Scheduled!**\n\nI have successfully scheduled **"${title}"** on **${date}** at **${time}**.\n\nThe auto-generated Jitsi Meet link has been added to the calendar.` };
   }

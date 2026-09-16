@@ -20,6 +20,123 @@ const jiraService = require("./services/atlassian/JiraService");
 
 const app = express();
 
+// PostgreSQL Prisma Compatibility Layer (Zero MongoDB runtime dependency)
+const User = {
+  find: (where = {}) => prisma.user.findMany({ where: where.persona ? { persona: where.persona } : (where.role ? { role: where.role } : {}) }),
+  findById: async (id) => {
+    if (!id) return null;
+    return prisma.user.findUnique({ where: { id: String(id) } }).catch(() => null);
+  },
+  findOne: async (where = {}) => {
+    if (where.email) return prisma.user.findUnique({ where: { email: where.email.toLowerCase().trim() } }).catch(() => null);
+    if (where.id) return prisma.user.findUnique({ where: { id: where.id } }).catch(() => null);
+    return prisma.user.findFirst({ where }).catch(() => null);
+  },
+  findOneAndUpdate: async (filter, update) => {
+    const email = filter.email ? filter.email.toLowerCase().trim() : "";
+    const existing = email ? await prisma.user.findUnique({ where: { email } }).catch(() => null) : null;
+    if (existing) {
+      return prisma.user.update({ where: { id: existing.id }, data: update }).catch(() => null);
+    }
+    return prisma.user.create({ data: { email, password: update.password || "Password123!", displayName: update.displayName || "User", role: update.role || "STUDENT", persona: update.persona || "student", campusId: update.campusId || null } }).catch(() => null);
+  }
+};
+
+const CorporateProject = {
+  find: (where = {}) => {
+    return {
+      lean: async () => prisma.project.findMany({ where: where.status ? { status: where.status } : {} }).catch(() => []),
+      then: (cb) => prisma.project.findMany().then(cb).catch(() => [])
+    };
+  },
+  findById: async (id) => prisma.project.findUnique({ where: { id: String(id) } }).catch(() => null),
+  findOne: async (where = {}) => prisma.project.findFirst({ where }).catch(() => null),
+  findByIdAndDelete: async (id) => prisma.project.delete({ where: { id: String(id) } }).catch(() => null),
+  findOneAndUpdate: async (filter, update) => {
+    const existing = filter.title ? await prisma.project.findFirst({ where: { title: filter.title } }).catch(() => null) : null;
+    if (existing) return prisma.project.update({ where: { id: existing.id }, data: update }).catch(() => null);
+    return prisma.project.create({ data: { company: filter.company || "Sponsor", title: filter.title || "Project", description: update.description || "", budget: update.budget || "$10,000", duration: update.duration || "3 Months", status: update.status || "Pending Assignment", proposedDueDate: update.proposedDueDate || "2026-12-31", dateAdded: new Date().toLocaleDateString() } }).catch(() => null);
+  }
+};
+
+const Meeting = {
+  find: (where = {}) => {
+    return {
+      lean: async () => prisma.meeting.findMany().catch(() => []),
+      then: (cb) => prisma.meeting.findMany().then(cb).catch(() => [])
+    };
+  },
+  findOne: async (where = {}) => prisma.meeting.findFirst({ where: where.id ? { id: where.id } : where }).catch(() => null),
+  findOneAndDelete: async (where = {}) => {
+    const match = await prisma.meeting.findFirst({ where }).catch(() => null);
+    if (match) return prisma.meeting.delete({ where: { id: match.id } }).catch(() => null);
+    return null;
+  },
+  findOneAndUpdate: async (filter, update) => {
+    const match = await prisma.meeting.findFirst({ where: filter }).catch(() => null);
+    if (match) return prisma.meeting.update({ where: { id: match.id }, data: update }).catch(() => null);
+    return null;
+  },
+  countDocuments: async () => prisma.meeting.count().catch(() => 0),
+  insertMany: async (items) => {
+    for (const item of items) {
+      await prisma.meeting.upsert({
+        where: { id: item.id },
+        update: { title: item.title, date: item.date, time: item.time, meetingLink: item.link, agenda: item.agenda, cadenceType: item.cadenceType },
+        create: { id: item.id, title: item.title, campusId: item.campusId || "3", date: item.date, time: item.time, meetingLink: item.link, agenda: item.agenda, cadenceType: item.cadenceType }
+      }).catch(() => null);
+    }
+  }
+};
+
+const MockTask = {
+  find: async (where = {}) => {
+    const boardId = where.boardId;
+    if (boardId && mockTasksStore[boardId]) return mockTasksStore[boardId];
+    return [];
+  },
+  findOne: async (where = {}) => {
+    for (const boardId of Object.keys(mockTasksStore)) {
+      const task = mockTasksStore[boardId].find(t => t.key === where.key || t.id === where.id);
+      if (task) return task;
+    }
+    return null;
+  },
+  countDocuments: async (where = {}) => {
+    const boardId = where.boardId;
+    return mockTasksStore[boardId] ? mockTasksStore[boardId].length : 0;
+  },
+  deleteMany: async () => {},
+  insertMany: async () => {}
+};
+
+const ChatMessage = {
+  find: () => ({
+    sort: () => prisma.chatMessage.findMany({ orderBy: { createdAt: 'asc' } }).catch(() => [])
+  }),
+  countDocuments: () => prisma.chatMessage.count().catch(() => 0),
+  insertMany: async (messages) => {
+    for (const m of messages) {
+      await prisma.chatMessage.create({ data: { sender: m.sender, message: m.message, campus: m.campus } }).catch(() => null);
+    }
+  }
+};
+
+const Submission = {
+  find: (where = {}) => {
+    return {
+      lean: async () => prisma.submission.findMany().catch(() => []),
+      then: (cb) => prisma.submission.findMany().then(cb).catch(() => [])
+    };
+  },
+  findOne: async (where = {}) => prisma.submission.findFirst({ where }).catch(() => null)
+};
+
+const Team = {
+  findById: async (id) => prisma.team.findUnique({ where: { id: String(id) } }).catch(() => null),
+  find: () => prisma.team.findMany().catch(() => [])
+};
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -4897,11 +5014,8 @@ async function seedDefaultMeetings() {
   }
 }
 
-// Start APNILEAP Express Server (PostgreSQL + Prisma System of Record)
-const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
-  console.log(`🚀 APNILEAP Server running on port ${PORT} (PostgreSQL + Prisma)`);
-      syncAcceptedProjectsWithJira().then(() => {
+// Background sync helper
+syncAcceptedProjectsWithJira().catch(err => console.warn('Background sync warning:', err.message));
         // Proactively warm up local caches in the background to make subsequent dashboard loads instant
         setTimeout(async () => {
           console.log("[CACHE] Warming up local endpoint caches...");
@@ -5013,15 +5127,6 @@ app.listen(PORT, () => {
           }
         });
         console.log("[CRON] Auto prep reminder active — fires 30 min before each meeting.");
-
-      });
-    });
-
-  })
-  .catch(err => {
-    console.error("❌ MongoDB connection failed:", err.message);
-    process.exit(1);
-  });
 
 // POST /api/login - Validate credentials against persistent MongoDB records and return user details with a secure JWT token
 app.post("/api/login", async (req, res) => {
@@ -5203,10 +5308,6 @@ app.get("/api/cohort-stats", async (req, res) => {
   }
 });
 
-// GET /api/teams - Get all Campus custom Sprints Teams
-
-app.get("/api/teams", async (req, res) => {
-  try {
 // GET /api/teams - Fetch Campus teams
 app.get("/api/teams", authenticateToken, async (req, res) => {
   try {
@@ -5362,24 +5463,6 @@ app.put("/api/teams/:id/evaluate", authenticateToken, async (req, res) => {
   } catch (error) {
     console.error("Evaluate team error:", error);
     res.status(500).json({ error: "Failed to evaluate Campus team." });
-  }
-});
-            
-            if (archTr) {
-              await axios.post(`${process.env.JIRA_DOMAIN}/rest/api/2/issue/${epicKey}/transitions`, { transition: { id: archTr.id } }, { headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" } });
-              console.log(`[REACTIVE AGENT] Auto-archived Epic ${epicKey} upon team evaluation.`);
-            }
-          }
-        }
-      }
-    } catch (epicErr) {
-      console.warn(`[REACTIVE AGENT] Failed to auto-archive epic:`, epicErr.message);
-    }
-
-    res.json({ success: true, team });
-  } catch (error) {
-    console.error("Evaluate team error:", error);
-    res.status(500).json({ error: "Failed to submit evaluation." });
   }
 });
 
@@ -5982,5 +6065,8 @@ app.post("/cache/clear", (req, res) => {
 });
 
 
-// Server startup listening has been moved inside the mongoose.connect().then() block above to guarantee correct database connection sync.
-// trigger nodemon reload for gmail config
+// Start APNILEAP Express Server (PostgreSQL + Prisma System of Record)
+const PORT = process.env.PORT || 5001;
+app.listen(PORT, () => {
+  console.log(`🚀 APNILEAP Server running on port ${PORT} (PostgreSQL + Prisma)`);
+});

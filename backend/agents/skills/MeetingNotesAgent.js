@@ -1,15 +1,11 @@
-const mongoose = require('mongoose');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 class MeetingNotesAgent {
   async processNotes(meetingId) {
-    const Meeting = mongoose.model("Meeting");
-    const meeting = await Meeting.findOne({ id: meetingId });
+    const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
     if (!meeting) return { success: false, message: "Meeting not found" };
 
-    // Simulate an AI Agent reading the notes (e.g. from Read.ai or Copilot)
-    // and extracting Action Items to auto-generate Jira epics/tasks
-    
-    // We will extract action items from the 'agenda' or a 'notes' field.
     const rawText = meeting.agenda || "";
     const actionItems = this.extractActionItems(rawText);
     
@@ -17,32 +13,24 @@ class MeetingNotesAgent {
        return { success: true, message: "No actionable items found in meeting notes." };
     }
 
-    const MockTask = mongoose.model("MockTask");
     const generatedTasks = [];
 
     for (const item of actionItems) {
-      const newTask = new MockTask({
-        key: `AUTO-${Math.floor(Math.random() * 1000)}`,
-        fields: {
+      const taskKey = `AUTO-${Math.floor(Math.random() * 1000)}`;
+      await prisma.meetingActionItem.create({
+        data: {
+          meetingId: meeting.id,
           summary: item,
-          status: { name: "To Do" },
-          assignee: { displayName: "Unassigned" },
-          priority: { name: "Medium" },
-          description: "🤖 Auto-generated from Meeting Notes by Rovo AI Agent.",
-          customfield_10020: [{ name: "Auto-Sprint" }]
+          jiraKey: taskKey,
+          status: "Created"
         }
       });
-      await newTask.save();
-      generatedTasks.push(newTask.key);
+      generatedTasks.push(taskKey);
     }
-    
-    meeting.actionItems = generatedTasks; // Save references
-    await meeting.save();
 
     return { success: true, generated: generatedTasks, message: `Successfully generated ${generatedTasks.length} Jira tasks from meeting notes.` };
   }
   
-  // A simple mock skill for parsing action items using regex/heuristics
   extractActionItems(text) {
     const actions = [];
     const lines = text.split("\n");
