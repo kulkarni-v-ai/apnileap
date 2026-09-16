@@ -8,7 +8,7 @@ import {
 } from "@hello-pangea/dnd";
 import axios from "axios";
 
-axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || '';
+axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 
 // Global Axios Interceptor to inject JWT authentication token automatically on outgoing requests
 axios.interceptors.request.use(
