@@ -5207,17 +5207,15 @@ app.get("/api/cohort-stats", async (req, res) => {
 
 app.get("/api/teams", async (req, res) => {
   try {
-    const { boardId, mentorId, projectId } = req.query;
-    const filter = {};
-    if (boardId) filter.boardId = boardId;
-    if (mentorId) {
-      filter.$or = [
-        { "mentor.accountId": mentorId },
-        { "subMentor.accountId": mentorId }
-      ];
-    }
-    if (projectId) filter.projectId = projectId;
-    const teams = await Team.find(filter);
+// GET /api/teams - Fetch Campus teams
+app.get("/api/teams", authenticateToken, async (req, res) => {
+  try {
+    const { boardId, projectId } = req.query;
+    const where = {};
+    if (boardId) where.boardId = boardId;
+    if (projectId) where.projectId = projectId;
+
+    const teams = await prisma.team.findMany({ where });
     res.json(teams);
   } catch (error) {
     console.error("Fetch teams error:", error);
@@ -5225,7 +5223,7 @@ app.get("/api/teams", async (req, res) => {
   }
 });
 
-// POST /api/teams - Create a new Campus Sprints Team persistently in MongoDB Atlas
+// POST /api/teams - Create a new Campus Sprints Team persistently in PostgreSQL
 app.post("/api/teams", authenticateToken, async (req, res) => {
   try {
     const { name, boardId, members, mentor, teamLeader, projectId, subMentor } = req.body;
@@ -5236,25 +5234,26 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
     const githubRepo = `https://github.com/octocat/Spoon-Knife`;
 
     if (projectId) {
-      const existingTeam = await Team.findOne({ projectId, boardId });
+      const existingTeam = await prisma.team.findFirst({ where: { projectId, boardId } });
       if (existingTeam) {
         return res.status(400).json({ error: "A team has already been created for this project in your campus. Only one team per project is allowed." });
       }
     }
 
-    const newTeam = new Team({
-      name,
-      boardId,
-      members,
-      mentor: mentor || null,
-      teamLeader: teamLeader || null,
-      projectId: projectId || null,
-      subMentor: subMentor || null,
-      githubRepo: githubRepo
+    const newTeam = await prisma.team.create({
+      data: {
+        name,
+        boardId,
+        members: members,
+        mentor: mentor || null,
+        teamLeader: teamLeader || null,
+        projectId: projectId || null,
+        subMentor: subMentor || null,
+        githubRepo: githubRepo
+      }
     });
 
-    await newTeam.save();
-    console.log(`[TEAM SUCCESS] Persistently created team "${name}" in MongoDB Atlas with ${members.length} members and mentor.`);
+    console.log(`[TEAM SUCCESS] Persistently created team "${name}" in PostgreSQL with ${members.length} members and mentor.`);
     res.json({ success: true, team: newTeam });
   } catch (error) {
     console.error("Create team error:", error);
@@ -5266,7 +5265,7 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
 app.delete("/api/teams/:id", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    await Team.findByIdAndDelete(id);
+    await prisma.team.delete({ where: { id } });
     console.log(`[TEAM DELETED] Disbanded team with ID: ${id}`);
     res.json({ success: true });
   } catch (error) {
@@ -5285,12 +5284,12 @@ app.put("/api/teams/:id/final-progress", authenticateToken, async (req, res) => 
       return res.status(400).json({ error: "Report URL is required." });
     }
 
-    const team = await Team.findById(id);
+    const team = await prisma.team.findUnique({ where: { id } });
     if (!team) {
       return res.status(404).json({ error: "Team not found." });
     }
 
-    team.finalProgress = {
+    const finalProgress = {
       reportUrl,
       facultyComments: facultyComments || "",
       grade: grade || "",
@@ -5302,9 +5301,13 @@ app.put("/api/teams/:id/final-progress", authenticateToken, async (req, res) => 
       evaluatedBy: ""
     };
 
-    await team.save();
+    const updatedTeam = await prisma.team.update({
+      where: { id },
+      data: { finalProgress }
+    });
+
     console.log(`[TEAM EVALUATION] Final progress submitted for team ${team.name} (${id})`);
-    res.json({ success: true, team });
+    res.json({ success: true, team: updatedTeam });
   } catch (error) {
     console.error("Submit final progress error:", error);
     res.status(500).json({ error: "Failed to submit final progress." });
@@ -5321,33 +5324,46 @@ app.put("/api/teams/:id/evaluate", authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "Valid rating (1-5) is required." });
     }
 
-    const team = await Team.findById(id);
+    const team = await prisma.team.findUnique({ where: { id } });
     if (!team) {
       return res.status(404).json({ error: "Team not found." });
     }
 
-    team.finalProgress.rating = rating;
-    team.finalProgress.companyFeedback = companyFeedback || "";
-    team.finalProgress.companyGrade = companyGrade || "";
-    team.finalProgress.evaluatedAt = new Date();
-    team.finalProgress.evaluatedBy = evaluatedBy || "Company Mentor";
-    team.finalProgress.status = "Evaluated";
+    const currentProgress = typeof team.finalProgress === 'object' && team.finalProgress ? team.finalProgress : {};
+    const finalProgress = {
+      ...currentProgress,
+      rating: rating,
+      companyFeedback: companyFeedback || "",
+      companyGrade: companyGrade || "",
+      evaluatedAt: new Date(),
+      evaluatedBy: evaluatedBy || "Company Mentor",
+      status: "Evaluated"
+    };
 
-    await team.save();
+    const updatedTeam = await prisma.team.update({
+      where: { id },
+      data: { finalProgress }
+    });
+
     console.log(`[TEAM EVALUATION] Team ${team.name} evaluated by ${evaluatedBy} with rating: ${rating} and grade: ${companyGrade}`);
 
-    // AUTO-ARCHIVE AUTOMATION: Transition the Project Epic to Archived (or Done)
-    try {
-      if (shouldCheckJira()) {
-        const project = await CorporateProject.findById(team.projectId);
-        if (project) {
-          const allocation = project.allocations?.find(a => String(a.targetCampusId) === String(team.campusId));
-          const epicKey = allocation ? allocation.assignedKey : project.assignedKey;
-          if (epicKey) {
-            const trRes = await axios.get(`${process.env.JIRA_DOMAIN}/rest/api/2/issue/${epicKey}/transitions`, { headers: { Authorization: `Basic ${auth}`, Accept: "application/json" } });
-            const transitions = trRes.data.transitions;
-            let archTr = transitions.find(t => t.name.toLowerCase() === "archived");
-            if (!archTr) archTr = transitions.find(t => t.name.toLowerCase() === "done");
+    // AUTO-ARCHIVE AUTOMATION: Transition Project Epic to Done via JiraService
+    if (team.projectId) {
+      const project = await prisma.project.findUnique({ where: { id: team.projectId }, include: { allocations: true } });
+      if (project) {
+        const epicKey = project.assignedKey;
+        if (epicKey) {
+          jiraService.transitionIssue(epicKey, "Done").catch(e => console.warn('Epic auto-archive notice:', e.message));
+        }
+      }
+    }
+
+    res.json({ success: true, team: updatedTeam });
+  } catch (error) {
+    console.error("Evaluate team error:", error);
+    res.status(500).json({ error: "Failed to evaluate Campus team." });
+  }
+});
             
             if (archTr) {
               await axios.post(`${process.env.JIRA_DOMAIN}/rest/api/2/issue/${epicKey}/transitions`, { transition: { id: archTr.id } }, { headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" } });
