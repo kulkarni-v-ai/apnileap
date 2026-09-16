@@ -7016,55 +7016,7 @@ function App() {
                       {/* Right: Campus Leaderboard & B2B Projects */}
                       <div style={{ display: "flex", flexDirection: "column", gap: "30px" }}>
                         
-                        {/* Dynamic Leaderboard for Student Pride */}
-                        <div className="glass-panel" style={{ padding: "24px" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                            <h3 style={{ fontSize: "14px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)", margin: 0 }}>Campus Leaderboard</h3>
-                            <span style={{ fontSize: "10px", color: "var(--primary)", fontWeight: "800", background: "var(--primary-glow)", padding: "2px 8px", borderRadius: "20px" }}>Live Rank</span>
-                          </div>
-                          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                            {leaderboardData.map((campus, idx) => {
-                              const isCurrent = campus.id === currentBoardId || (campus.name && campus.name.includes(CAMPUSES[currentBoardId]?.name));
-                              const medal = idx === 0 ? "1st" : idx === 1 ? "2nd" : idx === 2 ? "3rd" : "Rank";
-                              const pct = campus.total > 0 ? Math.round((campus.done / campus.total) * 100) : 0;
-                              
-                              return (
-                                <div key={campus.id || campus.name} style={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: "6px",
-                                  padding: "10px 14px",
-                                  background: isCurrent ? "var(--primary-glow)" : "rgba(255,255,255,0.01)",
-                                  border: isCurrent ? "1px solid var(--primary)" : "1px solid var(--border-glass)",
-                                  borderRadius: "10px",
-                                  boxShadow: isCurrent ? "0 0 15px rgba(99, 102, 241, 0.12)" : "none"
-                                }}>
-                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                      <span style={{ fontSize: "14px" }}>{medal}</span>
-                                      <span style={{ fontSize: "12px", fontWeight: isCurrent ? "800" : "600", color: isCurrent ? "var(--primary)" : "var(--text-main)" }}>
-                                        {campus.name} {isCurrent && ""}
-                                      </span>
-                                    </div>
-                                    <span style={{ fontSize: "11px", fontFamily: "var(--mono)", color: "var(--text-main)", fontWeight: "750" }}>
-                                      {campus.done} / {campus.total} ({pct}%)
-                                    </span>
-                                  </div>
-                                  <div style={{ height: "4px", background: "rgba(255,255,255,0.03)", borderRadius: "2px", overflow: "hidden", border: "1px solid var(--border-glass)" }}>
-                                    <div style={{
-                                      width: `${pct}%`,
-                                      height: "100%",
-                                      background: idx === 0 
-                                        ? "#f59e0b" 
-                                        : (idx === 1 ? "#9ca3af" : "var(--primary)"),
-                                      borderRadius: "2px"
-                                    }}></div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
+
 
                         {/* My Collaborative Teams */}
                         <div className="glass-panel" style={{ padding: "20px 24px", marginBottom: "20px" }}>
@@ -7617,68 +7569,6 @@ function App() {
                               ) : (
                                 <EmptyStateMessage text="No active work items assigned." />
                               )}
-                            </div>
-                          </div>
-
-                          {/* Dynamic Campus Campus Leaderboard */}
-                          <div className="glass-panel" style={{
-                            padding: "24px",
-                            display: "flex",
-                            flexDirection: "column",
-                            height: "350px",
-                            border: "1px solid rgba(255,255,255,0.06)",
-                            background: "rgba(17,24,39,0.2)",
-                            backdropFilter: "blur(12px)",
-                            boxShadow: "0 10px 30px -10px rgba(0,0,0,0.04)"
-                          }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                              <h3 style={{ fontSize: "15px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)", margin: 0 }}>Campus Leaderboard</h3>
-                              <span style={{ fontSize: "11px", color: "var(--primary)", fontWeight: "750", background: "var(--primary-glow)", padding: "2px 8px", borderRadius: "20px" }}>Live Velocity</span>
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "12px", overflowY: "auto", flex: 1, paddingRight: "4px" }}>
-                              {leaderboardData.map((campus, idx) => {
-                                const isCurrent = campus.id === currentBoardId || (campus.name && campus.name.includes(CAMPUSES[currentBoardId]?.name));
-                                const medal = idx === 0 ? "1st" : idx === 1 ? "2nd" : idx === 2 ? "3rd" : "Rank";
-                                const glowBorder = isCurrent ? "1px solid var(--primary)" : "1px solid var(--border-glass)";
-                                const bgHighlight = isCurrent ? "var(--primary-glow)" : "rgba(255,255,255,0.01)";
-                                const pct = campus.total > 0 ? Math.round((campus.done / campus.total) * 100) : 0;
-                                
-                                return (
-                                  <div key={campus.id || campus.name} style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "6px",
-                                    padding: "10px 14px",
-                                    background: bgHighlight,
-                                    border: glowBorder,
-                                    borderRadius: "10px",
-                                    boxShadow: isCurrent ? "0 0 15px rgba(99, 102, 241, 0.15)" : "none",
-                                    transition: "var(--transition-smooth)"
-                                  }}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                        <span style={{ fontSize: "16px" }}>{medal}</span>
-                                        <span style={{ fontSize: "13px", fontWeight: isCurrent ? "800" : "600", color: isCurrent ? "var(--primary)" : "var(--text-main)" }}>
-                                          {campus.name} {isCurrent && ""}
-                                        </span>
-                                      </div>
-                                      <span style={{ fontSize: "12.5px", fontFamily: "var(--mono)", color: "var(--text-main)", fontWeight: "750" }}>
-                                        {campus.done} / {campus.total} Done ({pct}%)
-                                      </span>
-                                    </div>
-                                    <div style={{ height: "6px", background: "rgba(255,255,255,0.03)", borderRadius: "3px", overflow: "hidden", border: "1px solid var(--border-glass)" }}>
-                                      <div style={{
-                                        width: `${pct}%`,
-                                        height: "100%",
-                                        background: idx === 0 
-                                          ? "#f59e0b" 
-                                          : (idx === 1 ? "#9ca3af" : "var(--primary)"),
-                                        borderRadius: "3px"
-                                      }}></div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
                             </div>
                           </div>
                         </div>
