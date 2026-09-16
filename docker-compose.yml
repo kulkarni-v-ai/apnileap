@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Database Service (Sole Runtime Database)
+  postgres:
+    image: postgres:16-alpine
+    container_name: apnileap-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: apnileap
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d apnileap"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. APNILEAP Express Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: apnileap-backend
+    restart: always
+    ports:
+      - "5001:5001"
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/apnileap?schema=public
+      JWT_SECRET: apnileap_docker_jwt_secret_key_99
+      ATLASSIAN_CLIENT_ID: ${ATLASSIAN_CLIENT_ID:-}
+      ATLASSIAN_CLIENT_SECRET: ${ATLASSIAN_CLIENT_SECRET:-}
+      ATLASSIAN_CALLBACK_URL: http://localhost:5001/api/integrations/atlassian/callback
+      ATLASSIAN_SCOPES: read:jira-work write:jira-work read:jira-user offline_access read:confluence-content.summary write:confluence-content
+      ATLASSIAN_TOKEN_ENCRYPTION_KEY: ${ATLASSIAN_TOKEN_ENCRYPTION_KEY:-12345678901234567890123456789012}
+      FRONTEND_URL: http://localhost
+      CORS_ORIGIN: "*"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # 3. APNILEAP React Frontend Service (Served via Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: apnileap-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

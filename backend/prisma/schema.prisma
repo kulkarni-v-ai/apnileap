@@ -1,0 +1,344 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String              @id @default(uuid())
+  email              String              @unique
+  password           String
+  displayName        String
+  role               String
+  persona            String              @default("student")
+  spokeId            String?
+  campusId           String?
+  campus             Campus?             @relation(fields: [campusId], references: [id])
+  status             String              @default("PENDING")
+  resetToken         String?
+  resetTokenExpiry   DateTime?
+  createdAt          DateTime            @default(now())
+  mentorAssignments  MentorAssignment[]
+  studentAssignments StudentAssignment[]
+  messagesSent       Message[]
+  meetingInvites     MeetingInvite[]
+  documentsUploaded  Document[]
+  connectionsCreated AtlassianConnection[]
+  notifications      Notification[]
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("INFO")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Project {
+  id                  String         @id @default(uuid())
+  company             String
+  logoUrl             String         @default("")
+  title               String
+  description         String
+  budget              String
+  duration            String
+  status              String         @default("Pending Assignment")
+  assignedTo          String?
+  targetCampusId      String?
+  proposedDueDate     String?
+  assignedKey         String?
+  facultyMentor       Json?
+  projectMentor       Json?
+  dateAdded           String
+  problemStatementUrl String         @default("")
+  requirements        String         @default("")
+  phases              ProjectPhase[]
+  allocations         Allocation[]
+  documents           Document[]
+  createdAt           DateTime       @default(now())
+}
+
+model ProjectPhase {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  description String   @default("")
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model Allocation {
+  id                String             @id @default(uuid())
+  targetCampusId    String
+  status            String             @default("Proposed")
+  assignedTo        String
+  proposedDueDate   String
+  jiraEpicId        String?
+  jiraEpicKey       String?
+  assignedKey       String?
+  facultyMentor     Json?
+  projectMentor     Json?
+  projectId         String
+  project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  mentorAssignments MentorAssignment[]
+  teams             Team[]
+  messages          Message[]
+  meetings          Meeting[]
+  documents         Document[]
+  createdAt         DateTime           @default(now())
+}
+
+model MentorAssignment {
+  id           String     @id @default(uuid())
+  allocationId String
+  allocation   Allocation @relation(fields: [allocationId], references: [id], onDelete: Cascade)
+  facultyId    String
+  faculty      User       @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  assignedAt   DateTime   @default(now())
+}
+
+model Campus {
+  id             String        @id @default(uuid())
+  name           String
+  jiraBoardKey   String?
+  jiraBoardId    String?
+  jiraProjectKey String?
+  isActive       Boolean       @default(true)
+  joinedDate     DateTime      @default(now())
+  users          User[]
+  meetings       Meeting[]
+  jiraProjects   JiraProject[]
+  jiraBoards     JiraBoard[]
+}
+
+model Company {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  logoUrl      String?
+  industry     String?
+  contactEmail String?
+  createdAt    DateTime @default(now())
+}
+
+model Meeting {
+  id             String              @id @default(uuid())
+  title          String
+  agenda         String?
+  date           String?
+  time           String?
+  scheduledAt    DateTime            @default(now())
+  meetingLink    String?
+  status         String              @default("Scheduled")
+  cadenceType    String              @default("General Sync")
+  meetingNotes   String              @default("")
+  notesPostedAt  DateTime?
+  reminderSentAt DateTime?
+  campusId       String
+  campus         Campus              @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  allocationId   String?
+  allocation     Allocation?         @relation(fields: [allocationId], references: [id], onDelete: Cascade)
+  organizerId    String?
+  invites        MeetingInvite[]
+  actionItems    MeetingActionItem[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+}
+
+model MeetingActionItem {
+  id        String   @id @default(uuid())
+  meetingId String
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  summary   String
+  jiraKey   String?
+  status    String   @default("Created")
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id              String   @id @default(uuid())
+  moderatorId     String
+  actionPerformed String
+  targetEntity    String?
+  details         String?
+  timestamp       DateTime @default(now())
+}
+
+model Team {
+  id                 String              @id @default(uuid())
+  name               String
+  boardId            String?
+  allocationId       String?
+  allocation         Allocation?         @relation(fields: [allocationId], references: [id], onDelete: Cascade)
+  mentor             Json?
+  teamLeader         Json?
+  subMentor          Json?
+  projectId          String?
+  githubRepo         String              @default("")
+  finalProgress      Json?
+  members            Json?
+  studentAssignments StudentAssignment[]
+  createdAt          DateTime            @default(now())
+}
+
+model StudentAssignment {
+  id         String   @id @default(uuid())
+  teamId     String
+  team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  studentId  String
+  student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+}
+
+model Submission {
+  id            String          @id @default(uuid())
+  taskId        String
+  studentName   String
+  fileName      String
+  fileUrl       String
+  comments      String          @default("")
+  status        String          @default("Awaiting Review")
+  feedback      String          @default("")
+  grade         String          @default("")
+  version       Int             @default(1)
+  reworkHistory ReworkHistory[]
+  submittedAt   DateTime        @default(now())
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model ReworkHistory {
+  id           String     @id @default(uuid())
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  version      Int
+  fileName     String
+  fileUrl      String
+  status       String
+  feedback     String     @default("")
+  comments     String     @default("")
+  timestamp    DateTime   @default(now())
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  sender    String
+  message   String
+  campus    String
+  createdAt DateTime @default(now())
+}
+
+model Message {
+  id           String     @id @default(uuid())
+  content      String
+  senderId     String
+  sender       User       @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  allocationId String
+  allocation   Allocation @relation(fields: [allocationId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+}
+
+model MeetingInvite {
+  id        String   @id @default(uuid())
+  meetingId String
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy String?
+  status    String   @default("Pending")
+  createdAt DateTime @default(now())
+}
+
+model Document {
+  id           String      @id @default(uuid())
+  filename     String
+  filepath     String
+  fileType     String
+  status       String      @default("Pending Review")
+  feedback     String?
+  uploadedById String
+  uploadedBy   User        @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  allocationId String?
+  allocation   Allocation? @relation(fields: [allocationId], references: [id], onDelete: Cascade)
+  projectId    String?
+  project      Project?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model AtlassianConnection {
+  id                    String              @id @default(uuid())
+  organizationId        String?
+  connectedByUserId     String?
+  connectedByUser       User?               @relation(fields: [connectedByUserId], references: [id], onDelete: SetNull)
+  cloudId               String              @unique
+  siteName              String?
+  siteUrl               String?
+  accessTokenEncrypted  String
+  refreshTokenEncrypted String
+  accessTokenExpiresAt  DateTime
+  scopes                String?
+  status                String              @default("CONNECTED")
+  lastRefreshAt         DateTime?
+  lastValidatedAt       DateTime?
+  resources             AtlassianResource[]
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+}
+
+model AtlassianResource {
+  id           String              @id @default(uuid())
+  connectionId String
+  connection   AtlassianConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  cloudId      String
+  siteName     String?
+  siteUrl      String?
+  avatarUrl    String?
+  scopes       String?
+  createdAt    DateTime            @default(now())
+}
+
+model JiraProject {
+  id             String   @id @default(uuid())
+  campusId       String?
+  campus         Campus?  @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  cloudId        String
+  jiraProjectId  String
+  jiraProjectKey String
+  name           String
+  createdAt      DateTime @default(now())
+}
+
+model JiraBoard {
+  id             String   @id @default(uuid())
+  campusId       String?
+  campus         Campus?  @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  jiraBoardId    String
+  name           String?
+  jiraProjectKey String?
+  createdAt      DateTime @default(now())
+}
+
+model SyncMetadata {
+  id             String   @id @default(uuid())
+  entityType     String
+  entityId       String
+  externalSystem String   @default("JIRA")
+  externalId     String?
+  externalKey    String?
+  cloudId        String?
+  lastSyncedAt   DateTime @default(now())
+  syncStatus     String   @default("SYNCED")
+  lastError      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([entityType, entityId, externalSystem])
+}
