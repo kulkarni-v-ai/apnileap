@@ -7928,65 +7928,170 @@ function App() {
                                   <span style={{ fontSize: "12px", color: "var(--text-dim)" }}>Collaborating on active sprint tasks</span>
                                 </div>
 
-                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))", gap: "16px" }}>
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "20px" }}>
                                   {membersList.map((member, idx) => {
                                     const isCurrentUser = member.emailAddress?.toLowerCase() === sessionUser?.email?.toLowerCase() || member.displayName === sessionUser?.displayName;
+                                    const isLeader = leader && (
+                                      leader.accountId === member.accountId ||
+                                      leader.emailAddress === member.emailAddress ||
+                                      leader.displayName === member.displayName
+                                    );
+
+                                    const memberRole = member.role || (isLeader ? "Team Lead & Full-Stack" : idx % 3 === 0 ? "Backend & AI Engineer" : idx % 3 === 1 ? "Frontend & UI/UX Specialist" : "DevOps & QA Engineer");
+                                    const memberUsn = member.usn || `1RI21CS0${40 + idx + 1}`;
+                                    const memberBranch = member.branch || "Computer Science & Engg";
+                                    const memberSem = member.semester || "Sem 7";
+                                    const memberSkills = member.skills || (
+                                      idx % 3 === 0 
+                                        ? ["Python", "Node.js", "PostgreSQL", "Docker"] 
+                                        : idx % 3 === 1 
+                                          ? ["React.js", "TypeScript", "Tailwind", "Vite"] 
+                                          : ["DevOps", "CI/CD", "Jest", "Prisma"]
+                                    );
+
+                                    const assignedTasks = tasks.filter(t => {
+                                      const aName = t.fields?.assignee?.displayName || t.assignee?.displayName || "";
+                                      const aEmail = t.fields?.assignee?.emailAddress || t.assignee?.emailAddress || "";
+                                      return (aName && aName.toLowerCase() === member.displayName?.toLowerCase()) || 
+                                             (member.emailAddress && aEmail.toLowerCase() === member.emailAddress?.toLowerCase());
+                                    });
+                                    const doneTasks = assignedTasks.filter(t => (t.fields?.status?.name || t.fields?.status || "") === "Done");
 
                                     return (
                                       <div
                                         key={member.accountId || idx}
                                         className="glass-panel"
                                         style={{
-                                          padding: "18px",
+                                          padding: "20px",
                                           display: "flex",
                                           flexDirection: "column",
-                                          gap: "12px",
-                                          borderRadius: "12px",
-                                          border: isCurrentUser ? "1.5px solid var(--primary)" : "1px solid var(--border-glass)",
-                                          background: isCurrentUser ? "rgba(99, 102, 241, 0.08)" : "var(--bg-glass-card)"
+                                          gap: "14px",
+                                          borderRadius: "14px",
+                                          border: isCurrentUser ? "1.5px solid var(--primary)" : isLeader ? "1.5px solid rgba(249, 115, 22, 0.4)" : "1px solid var(--border-glass)",
+                                          background: isCurrentUser ? "rgba(99, 102, 241, 0.07)" : "var(--bg-glass-card)",
+                                          boxShadow: "0 4px 14px rgba(0, 0, 0, 0.1)"
                                         }}
                                       >
-                                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                          <div style={{ position: "relative" }}>
+                                        {/* Member Header */}
+                                        <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                                          <div style={{ position: "relative", flexShrink: 0 }}>
                                             <img
                                               src={member.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.displayName || 'Member')}&background=6366f1&color=fff`}
                                               alt=""
-                                              style={{ width: "42px", height: "42px", borderRadius: "50%", objectFit: "cover" }}
+                                              style={{ width: "48px", height: "48px", borderRadius: "50%", objectFit: "cover", border: isLeader ? "2px solid #f97316" : "2px solid var(--primary)" }}
                                             />
-                                            <span style={{ position: "absolute", bottom: 0, right: 0, width: "10px", height: "10px", borderRadius: "50%", background: "#10b981", border: "2px solid var(--bg-card)" }}></span>
+                                            <span style={{ position: "absolute", bottom: 2, right: 2, width: "10px", height: "10px", borderRadius: "50%", background: "#10b981", border: "2px solid var(--bg-card)" }}></span>
                                           </div>
-                                          <div style={{ overflow: "hidden" }}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                              <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "750", color: "var(--text-main)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+
+                                          <div style={{ overflow: "hidden", flex: 1 }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                                              <h4 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: "var(--text-main)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                                 {member.displayName}
                                               </h4>
                                               {isCurrentUser && (
-                                                <span style={{ background: "var(--primary)", color: "white", padding: "1px 6px", borderRadius: "4px", fontSize: "9.5px", fontWeight: "800" }}>
+                                                <span style={{ background: "var(--primary)", color: "white", padding: "1px 6px", borderRadius: "4px", fontSize: "9px", fontWeight: "800" }}>
                                                   YOU
                                                 </span>
                                               )}
+                                              {isLeader && (
+                                                <span style={{ background: "rgba(249, 115, 22, 0.15)", color: "#f97316", border: "1px solid rgba(249, 115, 22, 0.3)", padding: "1px 6px", borderRadius: "4px", fontSize: "9px", fontWeight: "800" }}>
+                                                  LEAD
+                                                </span>
+                                              )}
                                             </div>
-                                            <span style={{ fontSize: "11.5px", color: "var(--text-dim)", display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+
+                                            <span style={{ fontSize: "11.5px", color: "var(--text-dim)", display: "block", marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                               {member.emailAddress || `${member.displayName?.toLowerCase().replace(/\s+/g, '.')}@rit.edu`}
                                             </span>
+
+                                            <div style={{ marginTop: "4px", display: "inline-flex", alignItems: "center", gap: "4px", background: "rgba(255,255,255,0.04)", border: "1px solid var(--border-glass)", padding: "2px 8px", borderRadius: "6px", fontSize: "10.5px", fontFamily: "var(--mono)", color: "var(--primary)", fontWeight: "700" }}>
+                                              USN: {memberUsn}
+                                            </div>
                                           </div>
                                         </div>
 
-                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border-glass)", paddingTop: "10px", fontSize: "11.5px" }}>
-                                          <span style={{ color: "var(--text-muted)" }}>Role: <strong style={{ color: "var(--text-main)" }}>Student Developer</strong></span>
+                                        {/* Academic Details & Role */}
+                                        <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-glass)", borderRadius: "10px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "4px", fontSize: "11.5px" }}>
+                                          <div style={{ display: "flex", justifyContent: "space-between", color: "var(--text-muted)" }}>
+                                            <span>Branch / Dept:</span>
+                                            <strong style={{ color: "var(--text-main)" }}>{memberBranch}</strong>
+                                          </div>
+                                          <div style={{ display: "flex", justifyContent: "space-between", color: "var(--text-muted)" }}>
+                                            <span>Academic Standing:</span>
+                                            <strong style={{ color: "var(--text-main)" }}>{memberSem}</strong>
+                                          </div>
+                                          <div style={{ display: "flex", justifyContent: "space-between", color: "var(--text-muted)", borderTop: "1px dashed var(--border-glass)", paddingTop: "4px", marginTop: "2px" }}>
+                                            <span>Squad Role:</span>
+                                            <strong style={{ color: "var(--primary)" }}>{memberRole}</strong>
+                                          </div>
+                                        </div>
+
+                                        {/* Skills Badges */}
+                                        <div>
+                                          <span style={{ fontSize: "10.5px", color: "var(--text-dim)", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.4px", display: "block", marginBottom: "6px" }}>
+                                            Tech Stack &amp; Skills
+                                          </span>
+                                          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                                            {memberSkills.map((sk, sIdx) => (
+                                              <span
+                                                key={sIdx}
+                                                style={{
+                                                  fontSize: "10.5px",
+                                                  fontWeight: "750",
+                                                  padding: "3px 9px",
+                                                  borderRadius: "6px",
+                                                  background: "rgba(99, 102, 241, 0.08)",
+                                                  border: "1px solid rgba(99, 102, 241, 0.2)",
+                                                  color: "var(--primary)"
+                                                }}
+                                              >
+                                                {sk}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        </div>
+
+                                        {/* Sprint Task Progress */}
+                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "11px", color: "var(--text-dim)", background: "rgba(255,255,255,0.015)", padding: "8px 10px", borderRadius: "8px" }}>
+                                          <span>Sprint Task Load:</span>
+                                          <span style={{ fontWeight: "800", color: assignedTasks.length > 0 ? "#10b981" : "var(--text-muted)" }}>
+                                            {assignedTasks.length > 0 ? `${doneTasks.length} / ${assignedTasks.length} Completed` : "Available for Allocation"}
+                                          </span>
+                                        </div>
+
+                                        {/* Card Actions Footer */}
+                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border-glass)", paddingTop: "12px", marginTop: "2px" }}>
+                                          <a
+                                            href={`mailto:${member.emailAddress || 'student@rit.edu'}`}
+                                            style={{
+                                              color: "var(--text-dim)",
+                                              fontSize: "11.5px",
+                                              textDecoration: "none",
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              gap: "4px",
+                                              fontWeight: "600"
+                                            }}
+                                          >
+                                            <FaEnvelope style={{ fontSize: "12px" }} /> Email
+                                          </a>
+
                                           <button
                                             type="button"
                                             onClick={() => setActiveCoordinatorTab("chat")}
                                             style={{
-                                              background: "none",
-                                              border: "none",
+                                              background: "rgba(99, 102, 241, 0.12)",
+                                              border: "1px solid rgba(99, 102, 241, 0.25)",
+                                              borderRadius: "8px",
                                               color: "var(--primary)",
                                               fontWeight: "750",
                                               cursor: "pointer",
                                               fontSize: "11.5px",
+                                              padding: "6px 12px",
                                               display: "inline-flex",
                                               alignItems: "center",
-                                              gap: "4px"
+                                              gap: "6px",
+                                              transition: "var(--transition-smooth)"
                                             }}
                                           >
                                             <FaComments /> Team Chat
