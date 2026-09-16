@@ -7245,14 +7245,14 @@ function App() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setActiveCoordinatorTab("projects")}
+                        onClick={() => setActiveCoordinatorTab("my-team")}
                         style={{
                           padding: "8px 18px",
                           borderRadius: "8px",
                           border: "1px solid transparent",
-                          background: activeCoordinatorTab === "projects" ? "rgba(99, 102, 241, 0.12)" : "transparent",
-                          color: activeCoordinatorTab === "projects" ? "var(--primary)" : "var(--text-muted)",
-                          borderColor: activeCoordinatorTab === "projects" ? "rgba(99, 102, 241, 0.25)" : "transparent",
+                          background: activeCoordinatorTab === "my-team" ? "rgba(99, 102, 241, 0.12)" : "transparent",
+                          color: activeCoordinatorTab === "my-team" ? "var(--primary)" : "var(--text-muted)",
+                          borderColor: activeCoordinatorTab === "my-team" ? "rgba(99, 102, 241, 0.25)" : "transparent",
                           fontWeight: "750",
                           fontSize: "12.5px",
                           cursor: "pointer",
@@ -7262,7 +7262,7 @@ function App() {
                           gap: "8px"
                         }}
                       >
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><FaBriefcase /></span> B2B Project Allocator
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><FaUsers /></span> My Team &amp; Teammates
                       </button>
 
                       <button
@@ -7823,167 +7823,207 @@ function App() {
                       </div>
                     )}
 
-                    {/* TAB 3: 💼 B2B PROJECT & SPRINT ALLOCATOR */}
-                    {activeCoordinatorTab === "projects" && (
-                      <div className="fade-in" style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "20px"
-                      }}>
-                          <h3 style={{ fontSize: "16px", fontWeight: "800", color: "var(--text-main)", margin: "0 0 10px 0" }}>
-                            Active B2B Corporate Projects Allocated to {CAMPUSES[currentBoardId]?.name || "Our Campus"}
-                          </h3>
+                    {/* TAB 3: 👥 MY TEAM & TEAMMATES */}
+                    {activeCoordinatorTab === "my-team" && (
+                      <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                        {(() => {
+                          const myTeam = Array.isArray(campusTeams) && campusTeams.length > 0
+                            ? (campusTeams.find(t => 
+                                t.members && Array.isArray(t.members) && t.members.some(m => 
+                                  m.emailAddress?.toLowerCase() === sessionUser?.email?.toLowerCase() || 
+                                  m.accountId === sessionUser?._id || 
+                                  m.displayName === sessionUser?.displayName
+                                )
+                              ) || campusTeams[0])
+                            : null;
 
-                          {acceptedProjectsForCampus.length > 0 ? (
-                            acceptedProjectsForCampus.map((proj) => {
-                              // Calculate milestones progress
-                              const expectedSummary = `[${proj.company}] ${proj.title}`;
-                              const epicKey = proj.allocations ? proj.allocations.find(a => a.targetCampusId === currentBoardId)?.assignedKey : proj.assignedKey;
-                              const projTasks = tasks.filter(t => {
-                                const parentKey = t.fields?.parent?.key || t.parent?.key;
-                                const parentSummary = t.fields?.parent?.fields?.summary || t.fields?.parent?.summary || t.parent?.fields?.summary || t.parent?.summary;
-                                return (epicKey && parentKey === epicKey) || (parentSummary && parentSummary === expectedSummary);
-                              });
+                          const membersList = myTeam && Array.isArray(myTeam.members) && myTeam.members.length > 0 ? myTeam.members : [
+                            { accountId: "m1", displayName: "Rahul Sharma", emailAddress: "student@rit.edu", avatarUrl: "https://ui-avatars.com/api/?name=Rahul+Sharma&background=6366f1&color=fff" },
+                            { accountId: "m2", displayName: "Ananya Deshmukh", emailAddress: "student@kle.edu", avatarUrl: "https://ui-avatars.com/api/?name=Ananya+Deshmukh&background=10b981&color=fff" },
+                            { accountId: "m3", displayName: "Sneha Joshi", emailAddress: "student@coep.edu", avatarUrl: "https://ui-avatars.com/api/?name=Sneha+Joshi&background=f97316&color=fff" }
+                          ];
+                          const teamName = myTeam?.name || `${CAMPUSES[currentBoardId]?.name || "RIT Campus"} Student Developer Squad`;
+                          const leader = myTeam?.teamLeader || membersList[0];
+
+                          return (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                               
-                              const totalT = projTasks.length;
-                              const doneT = projTasks.filter(t => (t.fields?.status?.name || t.fields?.status || "") === "Done").length;
-                              const progressPct = totalT > 0 ? Math.round((doneT / totalT) * 100) : 0;
-
-                              return (
-                                <div key={proj.id} className="glass-panel" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                      <CompanyLogo company={proj.company} size={36} />
-                                      <div>
-                                        <h4 style={{ margin: 0, fontSize: "13.5px", fontWeight: "800", color: "var(--text-main)" }}>{proj.title}</h4>
-                                        <span style={{ fontSize: "11px", color: "var(--text-dim)" }}>Sponsor: <strong>{proj.company}</strong> • Epic: <strong style={{ color: "var(--primary)", fontFamily: "var(--mono)" }}>{epicKey || "PNLP-3"}</strong></span>
+                              {/* Main Team Overview Card */}
+                              <div className="glass-panel" style={{ padding: "24px", position: "relative", overflow: "hidden", background: "linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.04) 100%)", border: "1px solid rgba(99, 102, 241, 0.25)", borderRadius: "14px" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                                    <div style={{ width: "56px", height: "56px", borderRadius: "16px", background: "linear-gradient(135deg, #6366f1, #a855f7)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", fontWeight: "800", boxShadow: "0 8px 20px rgba(99, 102, 241, 0.3)" }}>
+                                      <FaUsers />
+                                    </div>
+                                    <div>
+                                      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+                                        <h2 style={{ margin: 0, fontSize: "20px", fontWeight: "800", color: "var(--text-main)", letterSpacing: "-0.5px" }}>
+                                          {teamName}
+                                        </h2>
+                                        <span style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)", padding: "3px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "800" }}>
+                                          Active Squad
+                                        </span>
                                       </div>
-                                    </div>
-                                  </div>
-                                  <p style={{ margin: 0, fontSize: "12.5px", color: "var(--text-muted)", lineHeight: "1.4" }}>{proj.description}</p>
-                                  <div style={{
-                                    background: "rgba(255, 255, 255, 0.005)",
-                                    border: "1px solid var(--border-glass)",
-                                    borderRadius: "8px",
-                                    padding: "10px 14px",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "6px",
-                                    fontSize: "12px"
-                                  }}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                      <span style={{ color: "var(--text-muted)" }}>Agile Sprint Milestone Completion</span>
-                                      <strong style={{ color: "var(--primary)", fontFamily: "var(--mono)" }}>{progressPct}% ({doneT}/{totalT} Phases)</strong>
-                                    </div>
-                                    <div style={{ height: "6px", background: "rgba(255, 255, 255, 0.03)", borderRadius: "3px", overflow: "hidden", border: "1px solid var(--border-glass)" }}>
-                                      <div style={{ width: `${progressPct}%`, height: "100%", background: "var(--primary)", borderRadius: "3px" }}></div>
+                                      <p style={{ margin: 0, fontSize: "12.5px", color: "var(--text-muted)" }}>
+                                        Campus: <strong>{CAMPUSES[currentBoardId]?.name || "RIT Spoke Campus"}</strong> • Team Members: <strong>{membersList.length} Developers</strong>
+                                      </p>
                                     </div>
                                   </div>
 
-                                  {/* Mentors Row */}
-                                  {(() => {
-                                    const allocation = proj.allocations?.find(a => a.targetCampusId === currentBoardId);
-                                    const currFacultyMentor = allocation?.facultyMentor || proj.facultyMentor;
-                                    const currProjectMentor = allocation?.projectMentor || proj.projectMentor;
+                                  <a
+                                    href={myTeam?.githubRepo || "https://github.com/apnileap/rit-ai-vision"}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="btn-secondary"
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: "8px",
+                                      padding: "10px 18px",
+                                      borderRadius: "10px",
+                                      textDecoration: "none",
+                                      background: "rgba(255, 255, 255, 0.06)",
+                                      border: "1px solid var(--border-glass)",
+                                      color: "var(--text-main)",
+                                      fontWeight: "700",
+                                      fontSize: "12.5px"
+                                    }}
+                                  >
+                                    <FaGithub style={{ fontSize: "16px" }} /> Team GitHub Repository
+                                  </a>
+                                </div>
+                              </div>
+
+                              {/* Mentors & Leadership Cards */}
+                              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "16px" }}>
+                                
+                                {/* Team Leader */}
+                                <div className="glass-panel" style={{ padding: "18px", display: "flex", alignItems: "center", gap: "14px", borderRadius: "12px" }}>
+                                  <img
+                                    src={leader?.avatarUrl || "https://ui-avatars.com/api/?name=Team+Leader&background=f97316&color=fff"}
+                                    alt=""
+                                    style={{ width: "44px", height: "44px", borderRadius: "50%", border: "2px solid #f97316", objectFit: "cover" }}
+                                  />
+                                  <div>
+                                    <span style={{ fontSize: "10.5px", color: "#f97316", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>Team Leader</span>
+                                    <h4 style={{ margin: "2px 0 0 0", fontSize: "14px", fontWeight: "750", color: "var(--text-main)" }}>{leader?.displayName || "Rahul Sharma"}</h4>
+                                    <span style={{ fontSize: "11.5px", color: "var(--text-dim)" }}>{leader?.emailAddress || "student@rit.edu"}</span>
+                                  </div>
+                                </div>
+
+                                {/* College Faculty Mentor */}
+                                <div className="glass-panel" style={{ padding: "18px", display: "flex", alignItems: "center", gap: "14px", borderRadius: "12px" }}>
+                                  <img
+                                    src={myTeam?.mentor?.avatarUrl || "https://ui-avatars.com/api/?name=Suresh+Patil&background=10b981&color=fff"}
+                                    alt=""
+                                    style={{ width: "44px", height: "44px", borderRadius: "50%", border: "2px solid #10b981", objectFit: "cover" }}
+                                  />
+                                  <div>
+                                    <span style={{ fontSize: "10.5px", color: "#10b981", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>College Faculty Mentor</span>
+                                    <h4 style={{ margin: "2px 0 0 0", fontSize: "14px", fontWeight: "750", color: "var(--text-main)" }}>{myTeam?.mentor?.displayName || "Dr. Suresh Patil"}</h4>
+                                    <span style={{ fontSize: "11.5px", color: "var(--text-dim)" }}>{myTeam?.mentor?.emailAddress || "faculty@rit.edu"}</span>
+                                  </div>
+                                </div>
+
+                                {/* Corporate Project Mentor */}
+                                <div className="glass-panel" style={{ padding: "18px", display: "flex", alignItems: "center", gap: "14px", borderRadius: "12px" }}>
+                                  <img
+                                    src={myTeam?.subMentor?.avatarUrl || "https://ui-avatars.com/api/?name=Aniket+Verma&background=6366f1&color=fff"}
+                                    alt=""
+                                    style={{ width: "44px", height: "44px", borderRadius: "50%", border: "2px solid #6366f1", objectFit: "cover" }}
+                                  />
+                                  <div>
+                                    <span style={{ fontSize: "10.5px", color: "#6366f1", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>Corporate Project Mentor</span>
+                                    <h4 style={{ margin: "2px 0 0 0", fontSize: "14px", fontWeight: "750", color: "var(--text-main)" }}>{myTeam?.subMentor?.displayName || "Aniket Verma (Bosch)"}</h4>
+                                    <span style={{ fontSize: "11.5px", color: "var(--text-dim)" }}>{myTeam?.subMentor?.emailAddress || "mentor@bosch.com"}</span>
+                                  </div>
+                                </div>
+
+                              </div>
+
+                              {/* Student Teammates Grid */}
+                              <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "8px" }}>
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "var(--text-main)" }}>
+                                    Student Teammates Roster ({membersList.length})
+                                  </h3>
+                                  <span style={{ fontSize: "12px", color: "var(--text-dim)" }}>Collaborating on active sprint tasks</span>
+                                </div>
+
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))", gap: "16px" }}>
+                                  {membersList.map((member, idx) => {
+                                    const isCurrentUser = member.emailAddress?.toLowerCase() === sessionUser?.email?.toLowerCase() || member.displayName === sessionUser?.displayName;
+
                                     return (
-                                      <div style={{
-                                        display: "grid",
-                                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                                        gap: "12px",
-                                        marginTop: "6px"
-                                      }}>
-                                        {/* Faculty Mentor */}
-                                        <div style={{
-                                          background: "rgba(255, 255, 255, 0.01)",
-                                          border: "1px solid var(--border-glass)",
-                                          borderRadius: "8px",
-                                          padding: "10px 12px",
-                                          fontSize: "12px"
-                                        }}>
-                                          <div style={{ fontWeight: "750", color: "var(--text-main)", marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
-                                            <FaGraduationCap style={{ color: "#10b981" }} /> College Faculty Mentor
+                                      <div
+                                        key={member.accountId || idx}
+                                        className="glass-panel"
+                                        style={{
+                                          padding: "18px",
+                                          display: "flex",
+                                          flexDirection: "column",
+                                          gap: "12px",
+                                          borderRadius: "12px",
+                                          border: isCurrentUser ? "1.5px solid var(--primary)" : "1px solid var(--border-glass)",
+                                          background: isCurrentUser ? "rgba(99, 102, 241, 0.08)" : "var(--bg-glass-card)"
+                                        }}
+                                      >
+                                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                          <div style={{ position: "relative" }}>
+                                            <img
+                                              src={member.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.displayName || 'Member')}&background=6366f1&color=fff`}
+                                              alt=""
+                                              style={{ width: "42px", height: "42px", borderRadius: "50%", objectFit: "cover" }}
+                                            />
+                                            <span style={{ position: "absolute", bottom: 0, right: 0, width: "10px", height: "10px", borderRadius: "50%", background: "#10b981", border: "2px solid var(--bg-card)" }}></span>
                                           </div>
-                                          {currFacultyMentor ? (
-                                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                                              <img src={currFacultyMentor.avatarUrl || "https://ui-avatars.com/api/?name=Mentor&background=10b981&color=fff"} alt="" style={{ width: "24px", height: "24px", borderRadius: "50%" }} />
-                                              <div>
-                                                <div style={{ fontWeight: "600", fontSize: "11.5px" }}>{currFacultyMentor.displayName}</div>
-                                                <div style={{ fontSize: "10px", color: "var(--text-dim)" }}>{currFacultyMentor.emailAddress}</div>
-                                              </div>
+                                          <div style={{ overflow: "hidden" }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                              <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "750", color: "var(--text-main)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                                {member.displayName}
+                                              </h4>
+                                              {isCurrentUser && (
+                                                <span style={{ background: "var(--primary)", color: "white", padding: "1px 6px", borderRadius: "4px", fontSize: "9.5px", fontWeight: "800" }}>
+                                                  YOU
+                                                </span>
+                                              )}
                                             </div>
-                                          ) : (
-                                            <div style={{ fontStyle: "italic", color: "var(--text-dim)", fontSize: "11px", marginBottom: "8px" }}>No Faculty Mentor assigned</div>
-                                          )}
-                                          
-                                          {/* Dropdown select to assign */}
-                                          {!currFacultyMentor && (
-                                            <div>
-                                               <select
-                                                value=""
-                                                onChange={async (e) => {
-                                                  const mentorId = e.target.value;
-                                                  if (!mentorId) return;
-                                                  try {
-                                                    const res = await axios.post(`/api/project/${proj._id || proj.id}/campus/${currentBoardId}/faculty-mentor`, { mentorId });
-                                                    if (res.data && res.data.success) {
-                                                      triggerToast("Faculty Mentor assigned successfully!");
-                                                      fetchModeratorProjects(true); // reload projects list
-                                                    }
-                                                  } catch (err) {
-                                                    console.error(err);
-                                                    triggerToast("Failed to assign Faculty Mentor.", "error");
-                                                  }
-                                                }}
-                                                style={{ width: "100%", padding: "6px 8px", background: "#1f2937", border: "1px solid var(--border-glass)", borderRadius: "6px", color: "white", fontSize: "11px", outline: "none", cursor: "pointer" }}
-                                              >
-                                                <option value="">-- Assign Faculty Mentor --</option>
-                                                {campusMembers.filter(m => {
-                                                  const r = (m.role || "").toLowerCase();
-                                                  const d = (m.displayName || "").toLowerCase();
-                                                  return r.includes("mentor") || r.includes("faculty") || r.includes("professor") || d.includes("mentor") || d.includes("faculty") || d.includes("professor");
-                                                }).map(m => (
-                                                  <option key={m.accountId} value={m.accountId}>{m.displayName.replace(/ \((Student Developer|Faculty Mentor|Coordinator)\)/g, "")}</option>
-                                                ))}
-                                              </select>
-                                            </div>
-                                          )}
+                                            <span style={{ fontSize: "11.5px", color: "var(--text-dim)", display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                              {member.emailAddress || `${member.displayName?.toLowerCase().replace(/\s+/g, '.')}@rit.edu`}
+                                            </span>
+                                          </div>
                                         </div>
 
-                                        {/* Company Project Mentor */}
-                                        <div style={{
-                                          background: "rgba(255, 255, 255, 0.01)",
-                                          border: "1px solid var(--border-glass)",
-                                          borderRadius: "8px",
-                                          padding: "10px 12px",
-                                          fontSize: "12px"
-                                        }}>
-                                          <div style={{ fontWeight: "750", color: "var(--text-main)", marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
-                                            <FaUser style={{ color: "#f97316" }} /> Company Project Mentor
-                                          </div>
-                                          {currProjectMentor ? (
-                                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                              <img src={currProjectMentor.avatarUrl || "https://ui-avatars.com/api/?name=Mentor&background=f97316&color=fff"} alt="" style={{ width: "24px", height: "24px", borderRadius: "50%" }} />
-                                              <div>
-                                                <div style={{ fontWeight: "600", fontSize: "11.5px" }}>{currProjectMentor.displayName}</div>
-                                                <div style={{ fontSize: "10px", color: "var(--text-dim)" }}>{currProjectMentor.emailAddress}</div>
-                                              </div>
-                                            </div>
-                                          ) : (
-                                            <span style={{ fontStyle: "italic", color: "var(--text-dim)", fontSize: "11px" }}>Awaiting Sponsor assignment...</span>
-                                          )}
+                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border-glass)", paddingTop: "10px", fontSize: "11.5px" }}>
+                                          <span style={{ color: "var(--text-muted)" }}>Role: <strong style={{ color: "var(--text-main)" }}>Student Developer</strong></span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setActiveCoordinatorTab("chat")}
+                                            style={{
+                                              background: "none",
+                                              border: "none",
+                                              color: "var(--primary)",
+                                              fontWeight: "750",
+                                              cursor: "pointer",
+                                              fontSize: "11.5px",
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              gap: "4px"
+                                            }}
+                                          >
+                                            <FaComments /> Team Chat
+                                          </button>
                                         </div>
                                       </div>
                                     );
-                                  })()}
+                                  })}
                                 </div>
-                              );
-                            })
-                          ) : (
-                            <div className="glass-panel" style={{ padding: "30px", textAlign: "center", color: "var(--text-dim)", fontStyle: "italic", fontSize: "13px" }}>
-                              No active corporate projects have been allocated to your campus campus yet.
+                              </div>
+
                             </div>
-                          )}
-                        </div>
+                          );
+                        })()}
+                      </div>
                     )}
 
                     {/* TAB: CAMPUS TEAMS & PROJECTS */}
