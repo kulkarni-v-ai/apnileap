@@ -13,7 +13,7 @@ APNILEAP is containerized using **Docker Desktop** with **PostgreSQL 16** as the
 [ Docker Container: apnileap-backend (Node.js Express Port 5001) ]
         │
         ▼ (Prisma ORM over Internal Docker Network)
-[ Docker Container: apnileap-postgres (PostgreSQL Port 5432) ]
+[ Docker Container: apnileap-postgres-new (PostgreSQL Port 5433 host -> 5432 container) ]
 ```
 
 ---
@@ -43,7 +43,7 @@ docker compose ps
 Expected Output:
 | Name | Command | State | Ports |
 |---|---|---|---|
-| `apnileap-postgres` | `docker-entrypoint.sh postgres` | Up (healthy) | `0.0.0.0:5432->5432/tcp` |
+| `apnileap-postgres-new` | `docker-entrypoint.sh postgres` | Up (healthy) | `0.0.0.0:5433->5432/tcp` |
 | `apnileap-backend` | `docker-entrypoint.sh sh -c ...` | Up | `0.0.0.0:5001->5001/tcp` |
 | `apnileap-frontend` | `/docker-entrypoint.sh nginx ...` | Up | `0.0.0.0:80->80/tcp` |
 

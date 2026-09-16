@@ -2033,7 +2033,7 @@ app.get("/hub/metrics", async (req, res) => {
       // Map Mongo _id to id for client compatibility
       return {
         ...proj,
-        id: proj._id.toString(),
+        id: (proj.id || proj._id).toString(),
         allocations: enrichedAllocations
       };
     });
@@ -2202,7 +2202,7 @@ app.get("/moderator/projects", async (req, res) => {
       // Map Mongo _id to id for client compatibility
       const normalizedProj = {
         ...proj,
-        id: proj._id.toString()
+        id: (proj.id || proj._id).toString()
       };
 
       if (normalizedProj.allocations && normalizedProj.allocations.length > 0) {
@@ -2259,7 +2259,7 @@ app.get("/moderator/projects", async (req, res) => {
     }
     
     const companyProjects = await CorporateProject.find().lean();
-    const normalizedProjects = companyProjects.map(p => ({ ...p, id: p._id.toString() }));
+    const normalizedProjects = companyProjects.map(p => ({ ...p, id: (p.id || p._id).toString() }));
     res.json(normalizedProjects);
   }
 });
