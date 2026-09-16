@@ -13,6 +13,7 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 const cron = require("node-cron");
 const { sendFanOutEmail } = require("./utils/mailer");
 const meetingNotesAgent = require("./agents/skills/MeetingNotesAgent");
@@ -5128,34 +5129,42 @@ syncAcceptedProjectsWithJira().catch(err => console.warn('Background sync warnin
         });
         console.log("[CRON] Auto prep reminder active — fires 30 min before each meeting.");
 
-// POST /api/login - Validate credentials against persistent MongoDB records and return user details with a secure JWT token
+// POST /api/login - Validate credentials against persistent PostgreSQL records and return user details with a secure JWT token
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log(`[LOGIN ATTEMPT] Received email: "${email}", password: "${password}"`);
+    console.log(`[LOGIN ATTEMPT] Received email: "${email}"`);
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required." });
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    const user = await User.findOne({ email: cleanEmail });
+    const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
     
     if (!user) {
-      console.warn(`[LOGIN FAILED] User not found in MongoDB Atlas for email: "${cleanEmail}"`);
+      console.warn(`[LOGIN FAILED] User not found for email: "${cleanEmail}"`);
       return res.status(401).json({ error: "Invalid email address or incorrect password." });
     }
 
-    if (user.password !== password) {
-      console.warn(`[LOGIN FAILED] Password mismatch for user: "${cleanEmail}". expected matching DB, Got: "${password}"`);
+    let isMatch = false;
+    if (user.password.startsWith("$2a$") || user.password.startsWith("$2b$")) {
+      isMatch = await bcrypt.compare(password, user.password);
+    } else {
+      isMatch = (user.password === password);
+    }
+
+    if (!isMatch) {
+      console.warn(`[LOGIN FAILED] Password mismatch for user: "${cleanEmail}"`);
       return res.status(401).json({ error: "Invalid email address or incorrect password." });
     }
 
+    const userId = user.id;
     console.log(`[LOGIN SUCCESS] Successfully authenticated user: "${cleanEmail}" (${user.role})`);
     
     // Generate secure JWT token
     const token = jwt.sign(
       {
-        userId: user._id,
+        userId: userId,
         email: user.email,
         role: user.role,
         persona: user.persona
@@ -5168,7 +5177,8 @@ app.post("/api/login", async (req, res) => {
       success: true,
       token,
       user: {
-        _id: user._id.toString(),
+        id: userId,
+        _id: userId,
         email: user.email,
         displayName: user.displayName,
         role: user.role,
@@ -5182,7 +5192,7 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// POST /api/register - Register a new Student or Coordinator persistently in MongoDB Atlas
+// POST /api/register - Register a new user persistently in PostgreSQL
 app.post("/api/register", async (req, res) => {
   try {
     const { email, password, displayName, role, persona } = req.body;
@@ -5193,30 +5203,29 @@ app.post("/api/register", async (req, res) => {
 
     const cleanEmail = email.toLowerCase().trim();
     
-    // Check if user already exists
-    const existingUser = await User.findOne({ email: cleanEmail });
+    const existingUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
     if (existingUser) {
       return res.status(400).json({ error: "An account with this email address already exists." });
     }
 
-    const newUser = new User({
-      email: cleanEmail,
-      password,
-      displayName,
-      role,
-      persona
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = await prisma.user.create({
+      data: {
+        email: cleanEmail,
+        password: hashedPassword,
+        displayName,
+        role: role.toUpperCase(),
+        persona: persona.toLowerCase(),
+        status: "APPROVED"
+      }
     });
 
-    await newUser.save();
-    console.log(`[REGISTER SUCCESS] Persistently created user in MongoDB Atlas: "${cleanEmail}" (${role})`);
-    
-    // Invalidate caches (specifically members) so the new member is instantly assignable in details modals
+    console.log(`[REGISTER SUCCESS] Created user in PostgreSQL: "${cleanEmail}" (${role})`);
     invalidateCache();
 
-    // Generate secure JWT token
     const token = jwt.sign(
       {
-        userId: newUser._id,
+        userId: newUser.id,
         email: newUser.email,
         role: newUser.role,
         persona: newUser.persona
@@ -5229,7 +5238,8 @@ app.post("/api/register", async (req, res) => {
       success: true,
       token,
       user: {
-        _id: newUser._id.toString(),
+        id: newUser.id,
+        _id: newUser.id,
         email: newUser.email,
         displayName: newUser.displayName,
         role: newUser.role,
